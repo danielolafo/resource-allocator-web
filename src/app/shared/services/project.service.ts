@@ -1,12 +1,25 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
 import { Project } from '../models/project';
-import { MOCK_PROJECTS } from '../mock/mock-data';
+import { API_BASE_URL } from './api-config';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
-  private readonly _projects = signal<Project[]>(MOCK_PROJECTS);
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${API_BASE_URL}/projects`;
+
+  private readonly _projects = signal<Project[]>([]);
 
   readonly projects = this._projects.asReadonly();
+
+  constructor() {
+    this.http.get<Project[]>(this.baseUrl).subscribe({
+      next: (list) => this._projects.set(list),
+      error: (error) =>
+        console.error('No se pudieron cargar los proyectos desde el backend:', error),
+    });
+  }
 
   byId(id: number): Project | undefined {
     return this._projects().find((p) => p.id === id);
@@ -16,10 +29,9 @@ export class ProjectService {
     return this.byId(id)?.name ?? `Proyecto #${id}`;
   }
 
-  addProject(project: Omit<Project, 'id'>): Project {
-    const nextId = Math.max(0, ...this._projects().map((p) => p.id)) + 1;
-    const created: Project = { ...project, id: nextId };
-    this._projects.update((list) => [...list, created]);
-    return created;
+  addProject(project: Omit<Project, 'id'>): Observable<Project> {
+    return this.http.post<Project>(this.baseUrl, project).pipe(
+      tap((created) => this._projects.update((list) => [...list, created])),
+    );
   }
 }

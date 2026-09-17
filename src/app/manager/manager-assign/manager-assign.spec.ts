@@ -3,23 +3,33 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { provideRouter } from '@angular/router';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
-import { AssignmentCreate } from './assignment-create';
+import { ManagerAssign } from './manager-assign';
 import { AssignmentService } from '../../shared/services/assignment.service';
+import { EmployeeService } from '../../shared/services/employee.service';
+import { ProjectService } from '../../shared/services/project.service';
+import { TechnologyService } from '../../shared/services/technology.service';
 import { API_BASE_URL } from '../../shared/services/api-config';
 import { MOCK_EMPLOYEES, MOCK_PROJECTS, MOCK_TECHNOLOGIES } from '../../shared/mock/mock-data';
 
-describe('AssignmentCreate', () => {
-  let fixture: ComponentFixture<AssignmentCreate>;
-  let component: AssignmentCreate;
+describe('ManagerAssign', () => {
+  let fixture: ComponentFixture<ManagerAssign>;
+  let component: ManagerAssign;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ReactiveFormsModule, FormsModule],
-      declarations: [AssignmentCreate],
-      providers: [provideRouter([]), AssignmentService, provideHttpClientTesting()],
+      declarations: [ManagerAssign],
+      providers: [
+        provideRouter([]),
+        AssignmentService,
+        EmployeeService,
+        ProjectService,
+        TechnologyService,
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(AssignmentCreate);
+    fixture = TestBed.createComponent(ManagerAssign);
     component = fixture.componentInstance;
     fixture.detectChanges();
     flushCatalogs();
@@ -32,22 +42,26 @@ describe('AssignmentCreate', () => {
     http.match(`${API_BASE_URL}/technologies`).forEach((req) => req.flush(MOCK_TECHNOLOGIES));
   }
 
-  it('should list employees finishing soon for the PROXIMOS target', () => {
-    component.form.patchValue({ target: 'PROXIMOS', thresholdDays: 15, projectId: 2 });
-    const candidates = component.candidates();
-    expect(candidates.some((c) => c.finishing)).toBe(true);
+  it('should show the manager user in the header', () => {
+    expect(component.user.role).toBe('MANAGER');
+    expect(component.user.name.length).toBeGreaterThan(0);
   });
 
-  it('should list employees without project for the SIN_PROYECTO target', () => {
-    component.form.patchValue({ target: 'SIN_PROYECTO', projectId: 5 });
-    const candidates = component.candidates();
-    expect(candidates.some((c) => c.withoutProject)).toBe(true);
+  it('should list candidates when a project is selected', () => {
+    component.form.patchValue({ projectId: 2 });
+    expect(component.selectedProjectName()).toBeTruthy();
+    expect(component.candidates().length).toBeGreaterThan(0);
+  });
+
+  it('should respect a project selection requirement', () => {
+    component.form.patchValue({ projectId: null });
+    component.submit();
+    expect(component.errorMessage()).toContain('Debe seleccionar un proyecto');
   });
 
   it('should assign selected employees to the chosen project', () => {
-    component.form.patchValue({ target: 'PROXIMOS', thresholdDays: 15, projectId: 2 });
-    const candidates = component.candidates();
-    const first = candidates[0];
+    component.form.patchValue({ projectId: 3 });
+    const first = component.candidates()[0];
     component.toggleSelection(first.employeeId);
 
     const service = TestBed.inject(AssignmentService);

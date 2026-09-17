@@ -30,6 +30,10 @@ const routes: Routes = [
     loadChildren: () =>
       import('./distribution/distribution-module').then((m) => m.DistributionModule),
   },
+  {
+    path: 'manager',
+    loadChildren: () => import('./manager/manager-module').then((m) => m.ManagerModule),
+  },
   { path: '**', redirectTo: 'empleados' },
 ];
 

@@ -272,6 +272,11 @@ h2 {
   color: var(--color-muted);
 }
 
+.badge--primary {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
 .badge + .badge {
   margin-left: 6px;
 }

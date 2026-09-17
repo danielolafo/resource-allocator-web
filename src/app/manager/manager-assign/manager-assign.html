@@ -1,0 +1,134 @@
+<section class="page">
+  <header class="page__header">
+    <h1>
+      Asignar Empleados a Proyecto
+      <span class="badge badge--primary">Manager: {{ user.name }}</span>
+    </h1>
+    <p class="muted">
+      Asigne empleados por rango de fechas, por d&iacute;as o por tiempo. Los candidatos se muestran
+      con el porcentaje de coincidencia de tecnolog&iacute;as respecto al proyecto seleccionado.
+    </p>
+  </header>
+
+  <div class="card" [formGroup]="form">
+    <h2>1. Proyecto destino</h2>
+    <div class="grid grid--3">
+      <label class="field">
+        <span>Proyecto</span>
+        <select formControlName="projectId">
+          <option [ngValue]="null">-- Seleccione un proyecto --</option>
+          <option *ngFor="let project of projects()" [ngValue]="project.id">
+            {{ project.name }} ({{ project.client }})
+          </option>
+        </select>
+      </label>
+    </div>
+    <label class="inline-check" *ngIf="selectedProjectName()">
+      <input type="checkbox" formControlName="onlyMatching" />
+      Mostrar solo empleados que cumplan todas las tecnolog&iacute;as requeridas
+    </label>
+  </div>
+
+  <div class="card" [formGroup]="form">
+    <h2>2. Modalidad de asignaci&oacute;n</h2>
+    <div class="grid grid--3">
+      <label class="field">
+        <span>Modalidad</span>
+        <select formControlName="mode">
+          <option value="RANGO">Por rango de fechas</option>
+          <option value="DIAS">Por d&iacute;as</option>
+          <option value="HORAS">Por tiempo (horas por d&iacute;a)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Fecha de inicio</span>
+        <input type="date" formControlName="startDate" />
+      </label>
+      <label class="field" *ngIf="form.get('mode')?.value === 'DIAS'">
+        <span>Cantidad de d&iacute;as</span>
+        <input type="number" min="1" formControlName="days" />
+      </label>
+      <label class="field" *ngIf="form.get('mode')?.value === 'HORAS'">
+        <span>Horas por d&iacute;a</span>
+        <input type="number" min="1" max="24" formControlName="hoursPerDay" />
+      </label>
+      <label class="field" *ngIf="form.get('mode')?.value !== 'DIAS'">
+        <span>Fecha de fin</span>
+        <input type="date" formControlName="endDate" />
+      </label>
+    </div>
+    <label class="field">
+      <span>Notas (opcional)</span>
+      <textarea rows="2" formControlName="notes"></textarea>
+    </label>
+  </div>
+
+  <div class="card">
+    <div class="card__header">
+      <h2>3. Empleados candidatos ({{ candidates().length }})</h2>
+      <div class="actions">
+        <button type="button" class="btn btn--ghost" (click)="selectAll()" [disabled]="candidates().length === 0">
+          Seleccionar todos
+        </button>
+        <button type="button" class="btn btn--ghost" (click)="clearSelection()" [disabled]="selectedIds().size === 0">
+          Limpiar
+        </button>
+      </div>
+    </div>
+    <p class="muted" *ngIf="!selectedProjectName()">
+      Seleccione un proyecto para ver el nivel de coincidencia de tecnolog&iacute;as.
+    </p>
+
+    <table class="table" *ngIf="candidates().length > 0; else noCandidates">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Empleado</th>
+          <th>Cargo</th>
+          <th>Situaci&oacute;n</th>
+          <th>Coincidencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let candidate of candidates()" class="clickable" (click)="toggleSelection(candidate.employeeId)">
+          <td>
+            <input
+              type="checkbox"
+              [checked]="isSelected(candidate.employeeId)"
+              (click)="$event.stopPropagation()"
+              (change)="toggleSelection(candidate.employeeId)"
+            />
+          </td>
+          <td><strong>{{ candidate.name }}</strong></td>
+          <td>{{ candidate.position }}</td>
+          <td>
+            <span class="badge badge--warning" *ngIf="candidate.finishing">Pr&oacute;ximo a finalizar</span>
+            <span class="badge badge--muted" *ngIf="candidate.withoutProject">Sin proyecto</span>
+          </td>
+          <td>
+            <span
+              class="badge"
+              *ngIf="selectedProjectName()"
+              [class.badge--success]="candidate.satisfied"
+              [class.badge--warning]="!candidate.satisfied"
+            >
+              {{ candidate.matchPercentage }}%
+            </span>
+            <span class="muted" *ngIf="!selectedProjectName()">&mdash;</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noCandidates>
+      <p class="empty-state">No hay empleados que cumplan el criterio seleccionado.</p>
+    </ng-template>
+  </div>
+
+  <div class="card form-actions">
+    <button type="button" class="btn btn--primary" (click)="submit()" [disabled]="selectedIds().size === 0">
+      Asignar {{ selectedIds().size }} empleado(s)
+    </button>
+    <p class="alert alert--success" *ngIf="successMessage()">{{ successMessage() }}</p>
+    <p class="alert alert--danger" *ngIf="errorMessage()">{{ errorMessage() }}</p>
+  </div>
+</section>

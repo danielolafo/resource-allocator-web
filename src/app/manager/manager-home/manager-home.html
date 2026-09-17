@@ -1,0 +1,86 @@
+<section class="page">
+  <header class="page__header">
+    <h1>
+      Panel del Manager
+      <span class="badge badge--primary">Rol: {{ user.role }}</span>
+    </h1>
+    <p class="muted">
+      {{ user.name }} &mdash; asigne empleados a proyectos, distribuya con el m&oacute;dulo Distribution
+      o revise el equipo a su cargo.
+    </p>
+  </header>
+
+  <div class="card">
+    <h2>Acciones</h2>
+    <div class="btn-group">
+      <a class="btn btn--primary" [routerLink]="['/manager/asignar']">+ Asignar empleados a un proyecto</a>
+      <a class="btn" [routerLink]="['/distribution']">Distribuir empleados (m&oacute;dulo Distribution)</a>
+      <a class="btn btn--ghost" [routerLink]="['/alertas']">
+        Ver alertas
+        <span class="nav-badge" *ngIf="pendingAlerts() > 0">{{ pendingAlerts() }}</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="card summary-card">
+      <span class="summary-card__label">Empleados</span>
+      <strong>{{ totalEmployees() }}</strong>
+      <span class="muted">en plantilla</span>
+    </div>
+    <div class="card summary-card">
+      <span class="summary-card__label">Ocupados</span>
+      <strong>{{ occupiedEmployees() }}</strong>
+    </div>
+    <div class="card summary-card">
+      <span class="summary-card__label">Inactivos</span>
+      <strong>{{ idleEmployees() }}</strong>
+    </div>
+    <div class="card summary-card">
+      <span class="summary-card__label">Proyectos activos</span>
+      <strong>{{ activeProjects() }}</strong>
+    </div>
+  </div>
+
+  <h2>Empleados asignados</h2>
+  <table class="table" *ngIf="rows().length > 0; else empty">
+    <thead>
+      <tr>
+        <th>Empleado</th>
+        <th>Cargo</th>
+        <th>Proyecto</th>
+        <th>Modalidad</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows()">
+        <td>
+          <a [routerLink]="['/empleados', row.assignment.employeeId]">{{ row.employeeName }}</a>
+        </td>
+        <td>{{ row.position }}</td>
+        <td>
+          <a [routerLink]="['/proyectos', row.assignment.projectId]">{{ row.projectName }}</a>
+        </td>
+        <td>{{ row.modeLabel }}</td>
+        <td>{{ row.assignment.startDate | date: 'shortDate' }}</td>
+        <td>{{ row.assignment.endDate | date: 'shortDate' }}</td>
+        <td>
+          <span
+            class="badge"
+            [class.badge--success]="row.status === 'ACTIVA'"
+            [class.badge--warning]="row.status === 'PROGRAMADA'"
+            [class.badge--muted]="row.status === 'FINALIZADA'"
+          >
+            {{ row.statusLabel }}
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <ng-template #empty>
+    <p class="empty-state">A&uacute;n no hay empleados asignados a proyectos.</p>
+  </ng-template>
+</section>
