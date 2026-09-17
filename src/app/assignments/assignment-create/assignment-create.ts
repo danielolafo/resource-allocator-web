@@ -11,6 +11,7 @@ import {
 import { EmployeeService } from '../../shared/services/employee.service';
 import { ProjectService } from '../../shared/services/project.service';
 import { TechnologyService } from '../../shared/services/technology.service';
+import { ProjectStatus } from '../../shared/models/project';
 
 interface Candidate {
   employeeId: number;
@@ -20,6 +21,28 @@ interface Candidate {
   satisfied: boolean;
   finishing: boolean;
   withoutProject: boolean;
+}
+
+interface ProjectSuggestion {
+  projectId: number;
+  name: string;
+  client: string;
+  status: ProjectStatus;
+  startDate: string;
+  endDate: string;
+  dailyRate?: number;
+  matchPercentage: number;
+  satisfied: boolean;
+  satisfiedRequirements: number;
+  totalRequirements: number;
+  overlapsCurrent: boolean;
+}
+
+interface EmployeeSuggestions {
+  employeeId: number;
+  name: string;
+  position: string;
+  suggestions: ProjectSuggestion[];
 }
 
 @Component({
@@ -114,6 +137,77 @@ export class AssignmentCreate {
     const id = this.value().projectId;
     return id ? this.projectService.nameById(Number(id)) : null;
   });
+
+  readonly showSuggestions = signal(false);
+
+  readonly suggestions = computed<EmployeeSuggestions[]>(() => {
+    const employeeList = this.employeeService.employees();
+    const projectList = this.projectService
+      .projects()
+      .filter((p) => p.status !== 'Finalizado');
+    const today = new Date();
+
+    return [...this.selectedIds()]
+      .map((employeeId) => {
+        const employee = employeeList.find((e) => e.id === employeeId);
+        if (!employee) {
+          return null;
+        }
+        const options = projectList
+          .map((project): ProjectSuggestion => {
+            const match = evaluateEmployeeForProject(
+              employee,
+              project,
+              (id) => this.technologyService.nameById(id),
+            );
+            return {
+              projectId: project.id,
+              name: project.name,
+              client: project.client,
+              status: project.status,
+              startDate: project.startDate,
+              endDate: project.endDate,
+              dailyRate: project.dailyRate,
+              matchPercentage: match.percentage,
+              satisfied: match.satisfied,
+              satisfiedRequirements: match.satisfiedRequirements,
+              totalRequirements: match.totalRequirements,
+              overlapsCurrent:
+                this.assignmentService.overlapForEmployee(
+                  employeeId,
+                  project.startDate,
+                  project.endDate,
+                  today,
+                ).length > 0,
+            };
+          })
+          .filter((s) => s.matchPercentage > 0)
+          .sort(
+            (a, b) =>
+              Number(b.satisfied) - Number(a.satisfied) ||
+              b.matchPercentage - a.matchPercentage ||
+              a.name.localeCompare(b.name),
+          )
+          .slice(0, 5);
+
+        return {
+          employeeId,
+          name: `${employee.firstName} ${employee.lastName}`,
+          position: employee.position,
+          suggestions: options,
+        };
+      })
+      .filter((s): s is EmployeeSuggestions => s !== null);
+  });
+
+  toggleSuggestions(): void {
+    this.showSuggestions.update((value) => !value);
+  }
+
+  useAsTarget(suggestion: ProjectSuggestion): void {
+    this.form.patchValue({ projectId: suggestion.projectId, onlyMatching: false });
+    this.showSuggestions.set(false);
+  }
 
   isSelected(id: number): boolean {
     return this.selectedIds().has(id);

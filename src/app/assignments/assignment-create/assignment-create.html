@@ -74,6 +74,14 @@
     <div class="card__header">
       <h2>3. Empleados candidatos ({{ candidates().length }})</h2>
       <div class="actions">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          (click)="toggleSuggestions()"
+          [disabled]="selectedIds().size === 0"
+        >
+          {{ showSuggestions() ? 'Ocultar sugerencias' : 'Sugerir asignaciones' }}
+        </button>
         <button type="button" class="btn btn--ghost" (click)="selectAll()" [disabled]="candidates().length === 0">
           Seleccionar todos
         </button>
@@ -128,6 +136,68 @@
     </table>
     <ng-template #noCandidates>
       <p class="empty-state">No hay empleados que cumplan el criterio seleccionado.</p>
+    </ng-template>
+  </div>
+
+  <div class="card" *ngIf="showSuggestions()">
+    <div class="card__header">
+      <h2>Asignaciones posibles ({{ suggestions().length }} empleado(s))</h2>
+      <span class="muted">Ordenadas por coincidencia de tecnolog&iacute;as.</span>
+    </div>
+    <p class="muted">
+      Elija un proyecto sugerido como destino o asigne uno manualmente en el paso 1.
+    </p>
+
+    <ng-container *ngIf="suggestions().length > 0; else noSuggestions">
+      <div class="suggestion" *ngFor="let group of suggestions()">
+        <h3>
+          {{ group.name }}
+          <span class="muted">&middot; {{ group.position }}</span>
+        </h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Proyecto</th>
+              <th>Cliente</th>
+              <th>Estado</th>
+              <th>Tecnolog&iacute;as</th>
+              <th>Coincidencia</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let option of group.suggestions">
+              <td><strong>{{ option.name }}</strong></td>
+              <td>{{ option.client }}</td>
+              <td>{{ option.status }}</td>
+              <td>{{ option.satisfiedRequirements }}/{{ option.totalRequirements }}</td>
+              <td>
+                <span
+                  class="badge"
+                  [class.badge--success]="option.satisfied"
+                  [class.badge--warning]="!option.satisfied"
+                >
+                  {{ option.matchPercentage }}%
+                </span>
+                <span class="badge badge--danger" *ngIf="option.overlapsCurrent">
+                  Se solapa con asignaci&oacute;n actual
+                </span>
+              </td>
+              <td>
+                <button type="button" class="btn btn--ghost btn--sm" (click)="useAsTarget(option)">
+                  Usar como destino
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="group.suggestions.length === 0">
+              <td colspan="6" class="muted">No hay proyectos compatibles para este empleado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+    <ng-template #noSuggestions>
+      <p class="empty-state">No se encontraron proyectos compatibles para los empleados seleccionados.</p>
     </ng-template>
   </div>
 

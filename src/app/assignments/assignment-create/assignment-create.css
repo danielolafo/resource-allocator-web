@@ -1,0 +1,18 @@
+.badge--danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.btn--sm {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.suggestion h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.suggestion + .suggestion {
+  margin-top: 18px;
+}
