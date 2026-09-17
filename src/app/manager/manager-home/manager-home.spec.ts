@@ -7,7 +7,7 @@ import { AssignmentService } from '../../shared/services/assignment.service';
 import { EmployeeService } from '../../shared/services/employee.service';
 import { ProjectService } from '../../shared/services/project.service';
 import { API_BASE_URL } from '../../shared/services/api-config';
-import { MOCK_EMPLOYEES, MOCK_PROJECTS } from '../../shared/mock/mock-data';
+import { MOCK_ASSIGNMENTS, MOCK_EMPLOYEES, MOCK_PROJECTS } from '../../shared/mock/mock-data';
 
 describe('ManagerHome', () => {
   let fixture: ComponentFixture<ManagerHome>;
@@ -35,6 +35,7 @@ describe('ManagerHome', () => {
     const http = TestBed.inject(HttpTestingController);
     http.match(`${API_BASE_URL}/employees`).forEach((req) => req.flush(MOCK_EMPLOYEES));
     http.match(`${API_BASE_URL}/projects`).forEach((req) => req.flush(MOCK_PROJECTS));
+    http.match(`${API_BASE_URL}/assignments`).forEach((req) => req.flush(MOCK_ASSIGNMENTS));
   }
 
   it('should render the manager role badge', () => {

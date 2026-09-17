@@ -3,7 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { AlertService, DEFAULT_THRESHOLD_DAYS } from './alert.service';
 import { API_BASE_URL } from './api-config';
-import { MOCK_EMPLOYEES, MOCK_PROJECTS } from '../mock/mock-data';
+import { MOCK_ASSIGNMENTS, MOCK_EMPLOYEES, MOCK_PROJECTS } from '../mock/mock-data';
 
 describe('AlertService', () => {
   let service: AlertService;
@@ -16,6 +16,7 @@ describe('AlertService', () => {
     const http = TestBed.inject(HttpTestingController);
     http.match(`${API_BASE_URL}/employees`).forEach((req) => req.flush(MOCK_EMPLOYEES));
     http.match(`${API_BASE_URL}/projects`).forEach((req) => req.flush(MOCK_PROJECTS));
+    http.match(`${API_BASE_URL}/assignments`).forEach((req) => req.flush(MOCK_ASSIGNMENTS));
   });
 
   it('should generate alerts for assignments finishing within the threshold', () => {

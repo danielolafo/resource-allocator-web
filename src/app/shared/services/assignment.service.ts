@@ -1,6 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, forkJoin, tap } from 'rxjs';
 import { Assignment, assignmentStatus, AssignmentStatus } from '../models/assignment';
-import { MOCK_ASSIGNMENTS } from '../mock/mock-data';
+import { API_BASE_URL } from './api-config';
 
 export type AssignmentTarget = 'PROXIMOS' | 'SIN_PROYECTO' | 'AMBOS';
 
@@ -21,11 +23,20 @@ export const TARGET_LABELS: Record<AssignmentTarget, string> = {
 
 @Injectable({ providedIn: 'root' })
 export class AssignmentService {
-  private readonly _assignments = signal<Assignment[]>(MOCK_ASSIGNMENTS);
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${API_BASE_URL}/assignments`;
+
+  private readonly _assignments = signal<Assignment[]>([]);
 
   readonly assignments = this._assignments.asReadonly();
 
-  private nextId = 1000;
+  constructor() {
+    this.http.get<Assignment[]>(this.baseUrl).subscribe({
+      next: (list) => this._assignments.set(list),
+      error: (error) =>
+        console.error('No se pudieron cargar las asignaciones desde el backend:', error),
+    });
+  }
 
   byId(id: number): Assignment | undefined {
     return this._assignments().find((a) => a.id === id);
@@ -67,11 +78,9 @@ export class AssignmentService {
     return [...ids];
   }
 
-  assignEmployees(employeeIds: number[], payload: AssignPayload): Assignment[] {
-    const created: Assignment[] = employeeIds.map((employeeId) => {
-      this.nextId += 1;
-      const assignment: Assignment = {
-        id: this.nextId,
+  assignEmployees(employeeIds: number[], payload: AssignPayload): Observable<Assignment[]> {
+    const requests = employeeIds.map((employeeId) =>
+      this.http.post<Assignment>(this.baseUrl, {
         employeeId,
         projectId: payload.projectId,
         mode: payload.mode,
@@ -79,11 +88,11 @@ export class AssignmentService {
         startDate: payload.startDate,
         endDate: payload.endDate ?? payload.startDate,
         notes: payload.notes,
-      };
-      return assignment;
-    });
-    this._assignments.update((list) => [...list, ...created]);
-    return created;
+      }),
+    );
+    return forkJoin(requests).pipe(
+      tap((created) => this._assignments.update((list) => [...list, ...created])),
+    );
   }
 
   overlapForEmployee(employeeId: number, startDate: string, endDate: string, today: Date = new Date()): Assignment[] {

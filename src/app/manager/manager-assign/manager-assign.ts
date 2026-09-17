@@ -141,23 +141,32 @@ export class ManagerAssign {
       return;
     }
 
-    const created = this.assignmentService.assignEmployees(employeeIds, {
+    this.assignmentService.assignEmployees(employeeIds, {
       projectId: Number(v.projectId),
       mode: v.mode,
       hoursPerDay: v.mode === 'HORAS' ? Number(v.hoursPerDay) : undefined,
       startDate: v.startDate,
       endDate,
       notes: `manager:${this.user.name}; ${v.notes || ''}`.trimEnd().replace(/;$/, ''),
+    }).subscribe({
+      next: (created) => {
+        const modeLabel =
+          v.mode === 'DIAS'
+            ? 'por días'
+            : v.mode === 'HORAS'
+              ? 'por horas'
+              : 'por rango de fechas';
+        this.successMessage.set(
+          `Se asignaron ${created.length} empleado(s) al proyecto "${this.projectService.nameById(
+            Number(v.projectId),
+          )}" con modalidad ${modeLabel}.`,
+        );
+        this.selectedIds.set(new Set());
+        this.form.patchValue({ projectId: null, onlyMatching: false });
+      },
+      error: () => {
+        this.errorMessage.set('No se pudieron crear las asignaciones. Intente de nuevo.');
+      },
     });
-
-    const modeLabel =
-      v.mode === 'DIAS' ? 'por d\u00edas' : v.mode === 'HORAS' ? 'por horas' : 'por rango de fechas';
-    this.successMessage.set(
-      `Se asignaron ${created.length} empleado(s) al proyecto "${this.projectService.nameById(
-        Number(v.projectId),
-      )}" con modalidad ${modeLabel}.`,
-    );
-    this.selectedIds.set(new Set());
-    this.form.patchValue({ projectId: null, onlyMatching: false });
   }
 }

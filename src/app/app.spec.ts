@@ -4,7 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { App } from './app';
 import { API_BASE_URL } from './shared/services/api-config';
-import { MOCK_EMPLOYEES, MOCK_PROJECTS } from './shared/mock/mock-data';
+import { MOCK_ASSIGNMENTS, MOCK_EMPLOYEES, MOCK_PROJECTS } from './shared/mock/mock-data';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -35,5 +35,6 @@ describe('App', () => {
     const http = TestBed.inject(HttpTestingController);
     http.match(`${API_BASE_URL}/employees`).forEach((req) => req.flush(MOCK_EMPLOYEES));
     http.match(`${API_BASE_URL}/projects`).forEach((req) => req.flush(MOCK_PROJECTS));
+    http.match(`${API_BASE_URL}/assignments`).forEach((req) => req.flush(MOCK_ASSIGNMENTS));
   }
 });

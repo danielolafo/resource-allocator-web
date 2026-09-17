@@ -6,7 +6,7 @@ import { HttpTestingController } from '@angular/common/http/testing';
 import { AssignmentCreate } from './assignment-create';
 import { AssignmentService } from '../../shared/services/assignment.service';
 import { API_BASE_URL } from '../../shared/services/api-config';
-import { MOCK_EMPLOYEES, MOCK_PROJECTS, MOCK_TECHNOLOGIES } from '../../shared/mock/mock-data';
+import { MOCK_ASSIGNMENTS, MOCK_EMPLOYEES, MOCK_PROJECTS, MOCK_TECHNOLOGIES } from '../../shared/mock/mock-data';
 
 describe('AssignmentCreate', () => {
   let fixture: ComponentFixture<AssignmentCreate>;
@@ -30,6 +30,7 @@ describe('AssignmentCreate', () => {
     http.match(`${API_BASE_URL}/employees`).forEach((req) => req.flush(MOCK_EMPLOYEES));
     http.match(`${API_BASE_URL}/projects`).forEach((req) => req.flush(MOCK_PROJECTS));
     http.match(`${API_BASE_URL}/technologies`).forEach((req) => req.flush(MOCK_TECHNOLOGIES));
+    http.match(`${API_BASE_URL}/assignments`).forEach((req) => req.flush(MOCK_ASSIGNMENTS));
   }
 
   it('should list employees finishing soon for the PROXIMOS target', () => {
@@ -53,6 +54,11 @@ describe('AssignmentCreate', () => {
     const service = TestBed.inject(AssignmentService);
     const before = service.assignments().length;
     component.submit();
+
+    const http = TestBed.inject(HttpTestingController);
+    const posts = http.match(`${API_BASE_URL}/assignments`);
+    expect(posts.length).toBe(1);
+    posts.forEach((req) => req.flush({ ...req.request.body, id: 9000 }));
 
     expect(service.assignments().length).toBe(before + 1);
     expect(component.successMessage()).toContain('Se asignaron 1 empleado(s)');
