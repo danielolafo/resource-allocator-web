@@ -1,0 +1,22 @@
+<section class="app-shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="logo">RA</span>
+      <span class="topbar__title">Resource Allocator</span>
+    </div>
+    <nav class="topbar__nav">
+      <a routerLink="/empleados" routerLinkActive="active">Empleados</a>
+      <a routerLink="/proyectos" routerLinkActive="active">Proyectos</a>
+      <a routerLink="/tecnologias" routerLinkActive="active">Tecnolog&iacute;as</a>
+      <a routerLink="/asignaciones" routerLinkActive="active">Asignaciones</a>
+      <a routerLink="/distribution" routerLinkActive="active">Distribuci&oacute;n</a>
+      <a routerLink="/alertas" routerLinkActive="active" class="nav-alerts">
+        Alertas
+        <span class="nav-badge" *ngIf="unreadAlerts() > 0">{{ unreadAlerts() }}</span>
+      </a>
+    </nav>
+  </header>
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
+</section>

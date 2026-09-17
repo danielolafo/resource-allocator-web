@@ -1,0 +1,91 @@
+<section class="page" *ngIf="employee() as employee; else notFound">
+  <a [routerLink]="['/empleados']" class="back-link">← Volver a empleados</a>
+
+  <header class="page__header">
+    <h1>{{ employee.firstName }} {{ employee.lastName }}</h1>
+    <span class="badge" [class.badge--success]="currentAssignment()" [class.badge--muted]="!currentAssignment()">
+      {{ currentAssignment() ? 'Asignado' : 'Disponible / Sin proyecto' }}
+    </span>
+  </header>
+
+  <div class="grid grid--2">
+    <div class="card">
+      <h2>Datos personales</h2>
+      <dl class="detail-list">
+        <dt>Cargo</dt>
+        <dd>{{ employee.position }}</dd>
+        <dt>Correo</dt>
+        <dd>{{ employee.email }}</dd>
+        <dt>Fecha de ingreso</dt>
+        <dd>{{ employee.hireDate | date: 'longDate' }}</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2>Proyecto actual</h2>
+      <ng-container *ngIf="currentAssignment() as current; else noCurrent">
+        <dl class="detail-list">
+          <dt>Proyecto</dt>
+          <dd>
+            <a [routerLink]="['/proyectos', current.projectId]">{{ projectName(current.projectId) }}</a>
+          </dd>
+          <dt>Tipo de asignación</dt>
+          <dd>{{ modeLabel(current.mode) }}</dd>
+          <dt>Inicio</dt>
+          <dd>{{ current.startDate | date: 'longDate' }}</dd>
+          <dt>Fin</dt>
+          <dd>{{ current.endDate | date: 'longDate' }}</dd>
+        </dl>
+      </ng-container>
+      <ng-template #noCurrent>
+        <p class="muted">El empleado no tiene un proyecto asignado actualmente.</p>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="card">
+    <app-employee-technologies [employee]="employee"></app-employee-technologies>
+  </div>
+
+  <h2>Historial de asignaciones</h2>
+  <table class="table" *ngIf="assignments().length > 0; else noAssignments">
+    <thead>
+      <tr>
+        <th>Proyecto</th>
+        <th>Modalidad</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let assignment of assignments()">
+        <td>
+          <a [routerLink]="['/proyectos', assignment.projectId]">{{ projectName(assignment.projectId) }}</a>
+        </td>
+        <td>{{ modeLabel(assignment.mode) }}</td>
+        <td>{{ assignment.startDate | date: 'shortDate' }}</td>
+        <td>{{ assignment.endDate | date: 'shortDate' }}</td>
+        <td>
+          <span class="badge" [ngClass]="{
+            'badge--success': statusOf(assignment) === 'ACTIVA',
+            'badge--warning': statusOf(assignment) === 'PROGRAMADA',
+            'badge--muted': statusOf(assignment) === 'FINALIZADA'
+          }">
+            {{ statusLabel(statusOf(assignment)) }}
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #noAssignments>
+    <p class="empty-state">Este empleado aún no tiene asignaciones registradas.</p>
+  </ng-template>
+</section>
+
+<ng-template #notFound>
+  <section class="page">
+    <p class="empty-state">Empleado no encontrado.</p>
+  </section>
+</ng-template>

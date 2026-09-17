@@ -1,0 +1,47 @@
+<section class="page">
+  <header class="page__header">
+    <h1>Consulta de Empleados</h1>
+    <p class="muted">Empleados registrados en la organización y su situación actual.</p>
+  </header>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      class="form-input"
+      placeholder="Buscar por nombre o cargo…"
+      [value]="filter()"
+      (input)="filter.set(($any($event.target).value))"
+    />
+  </div>
+
+  <table class="table" *ngIf="rows().length > 0; else empty">
+    <thead>
+      <tr>
+        <th>Empleado</th>
+        <th>Cargo</th>
+        <th>Correo</th>
+        <th>Proyecto actual</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows()" class="clickable" [routerLink]="['/empleados', row.employee.id]">
+        <td>
+          <strong>{{ row.employee.firstName }} {{ row.employee.lastName }}</strong>
+        </td>
+        <td>{{ row.employee.position }}</td>
+        <td>{{ row.employee.email }}</td>
+        <td>{{ row.projectName ?? '—' }}</td>
+        <td>
+          <span class="badge" [class.badge--success]="row.assigned" [class.badge--muted]="!row.assigned">
+            {{ row.assigned ? 'Asignado' : 'Sin proyecto' }}
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #empty>
+    <p class="empty-state">No se encontraron empleados con ese criterio.</p>
+  </ng-template>
+</section>

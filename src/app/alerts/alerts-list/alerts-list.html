@@ -1,0 +1,62 @@
+<section class="page">
+  <header class="page__header">
+    <h1>Alertas de Asignaciones</h1>
+    <p class="muted">
+      Avisos cuando una asignaci&oacute;n est&aacute; pr&oacute;xima a finalizar. Quedan
+      <strong>{{ unreadCount() }}</strong> alertas sin leer.
+    </p>
+  </header>
+
+  <div class="toolbar toolbar--between">
+    <label class="field field--inline">
+      <span>Anticipaci&oacute;n (d&iacute;as)</span>
+      <input
+        type="number"
+        min="0"
+        class="form-input form-input--sm"
+        [value]="thresholdDays()"
+        (change)="setThreshold($any($event.target).value)"
+      />
+    </label>
+    <button type="button" class="btn btn--ghost" (click)="markAllAsRead()" [disabled]="unreadCount() === 0">
+      Marcar todas como le&iacute;das
+    </button>
+  </div>
+
+  <div class="alert-list" *ngIf="alerts().length > 0; else noAlerts">
+    <article
+      class="alert-card"
+      *ngFor="let alert of alerts()"
+      [class.alert-card--danger]="alert.severity === 'danger'"
+      [class.alert-card--warning]="alert.severity === 'warning'"
+      [class.alert-card--read]="alert.read"
+    >
+      <div class="alert-card__body">
+        <p class="alert-card__message">{{ alert.message }}</p>
+        <div class="alert-card__meta">
+          <span>
+            Empleado:
+            <a [routerLink]="['/empleados', alert.employeeId]">{{ alert.employeeName }}</a>
+          </span>
+          <span>
+            Proyecto:
+            <a [routerLink]="['/proyectos', alert.projectId]">{{ alert.projectName }}</a>
+          </span>
+          <span>Fin: {{ alert.endDate | date: 'longDate' }}</span>
+          <span *ngIf="alert.daysRemaining >= 0">Restan {{ alert.daysRemaining }} d&iacute;as</span>
+          <span *ngIf="alert.daysRemaining < 0">Vencida hace {{ -alert.daysRemaining }} d&iacute;as</span>
+        </div>
+      </div>
+      <div class="alert-card__actions">
+        <a class="btn btn--ghost" [routerLink]="['/asignaciones/nueva']">Reasignar</a>
+        <button type="button" class="btn btn--ghost" *ngIf="!alert.read" (click)="markAsRead(alert.assignmentId)">
+          Marcar le&iacute;da
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <ng-template #noAlerts>
+    <p class="empty-state">No hay asignaciones pr&oacute;ximas a finalizar en este momento.</p>
+  </ng-template>
+</section>

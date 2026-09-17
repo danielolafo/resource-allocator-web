@@ -1,0 +1,81 @@
+<section class="page" *ngIf="project() as project; else notFound">
+  <a [routerLink]="['/proyectos']" class="back-link">&larr; Volver a proyectos</a>
+
+  <header class="page__header">
+    <h1>{{ project.name }}</h1>
+    <span class="badge">{{ project.status }}</span>
+  </header>
+
+  <div class="grid grid--2">
+    <div class="card">
+      <h2>Descripci&oacute;n</h2>
+      <p>{{ project.description }}</p>
+      <dl class="detail-list">
+        <dt>Cliente</dt>
+        <dd>{{ project.client }}</dd>
+        <dt>Inicio</dt>
+        <dd>{{ project.startDate | date: 'longDate' }}</dd>
+        <dt>Fin</dt>
+        <dd>{{ project.endDate | date: 'longDate' }}</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2>Tecnolog&iacute;as requeridas</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tecnolog&iacute;a</th>
+            <th>Nivel m&iacute;nimo</th>
+            <th>Experiencia m&iacute;nima</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tech of requiredTechnologies()">
+            <td>{{ tech.name }}</td>
+            <td>{{ tech.minLevel }}</td>
+            <td>{{ tech.minYears }} a&ntilde;os</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>Empleados asignados</h2>
+  <table class="table" *ngIf="assignedEmployees().length > 0; else noEmployees">
+    <thead>
+      <tr>
+        <th>Empleado</th>
+        <th>Modalidad</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Cumplimiento de tecnolog&iacute;as</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of assignedEmployees()">
+        <td>
+          <a [routerLink]="['/empleados', item.employeeId]">{{ item.employeeName }}</a>
+        </td>
+        <td>{{ item.mode }}</td>
+        <td>{{ item.startDate | date: 'shortDate' }}</td>
+        <td>{{ item.endDate | date: 'shortDate' }}</td>
+        <td>
+          <span class="badge" [class.badge--success]="item.satisfied" [class.badge--warning]="!item.satisfied">
+            {{ item.percentage }}% de las tecnolog&iacute;as
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #noEmployees>
+    <p class="empty-state">No hay empleados asignados a este proyecto.</p>
+  </ng-template>
+</section>
+
+<ng-template #notFound>
+  <section class="page">
+    <p class="empty-state">Proyecto no encontrado.</p>
+  </section>
+</ng-template>

@@ -1,0 +1,145 @@
+<section class="page">
+  <header class="page__header">
+    <h1>Distribuci&oacute;n de Recursos</h1>
+    <p class="muted">
+      Genera el payload y lo env&iacute;a mediante <strong>POST /allocation</strong>. Los empleados
+      se distribuyen en los proyectos seg&uacute;n las tecnolog&iacute;as requeridas (nivel, experiencia
+      y cantidad).
+    </p>
+  </header>
+
+  <div class="card">
+    <h2>Origen de los datos</h2>
+    <div class="btn-group" role="group">
+      <button
+        type="button"
+        class="btn"
+        [class.btn--primary]="dataSource() === 'catalogs'"
+        (click)="dataSource.set('catalogs')"
+      >
+        Cat&aacute;logos actuales
+      </button>
+      <button
+        type="button"
+        class="btn"
+        [class.btn--primary]="dataSource() === 'reference'"
+        (click)="dataSource.set('reference')"
+      >
+        Payload de referencia
+      </button>
+    </div>
+    <p class="muted">
+      {{ payloadCounts().technologies }} tecnolog&iacute;as, {{ payloadCounts().employees }} empleados,
+      {{ payloadCounts().projects }} proyectos, {{ payloadCounts().assignments }} asignaciones previas.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Restricciones y ejecuci&oacute;n</h2>
+    <div class="grid grid--3">
+      <label class="field">
+        <span>Costo m&aacute;ximo total (opcional)</span>
+        <input
+          type="number"
+          min="0"
+          class="form-input"
+          [value]="maxTotalCost() ?? ''"
+          (change)="onMaxCost($any($event.target).value)"
+          placeholder="sin l&iacute;mite"
+        />
+      </label>
+      <div class="field">
+        <span>&nbsp;</span>
+        <button
+          type="button"
+          class="btn btn--primary"
+          (click)="run()"
+          [disabled]="isLoading()"
+        >
+          {{ isLoading() ? 'Distribuyendo…' : 'Ejecutar asignaci&oacute;n (POST /allocation)' }}
+        </button>
+      </div>
+    </div>
+    <p class="alert alert--danger" *ngIf="lastError()">{{ lastError() }}</p>
+  </div>
+
+  <ng-container *ngIf="response() as result">
+    <div class="summary-grid">
+      <div class="card summary-card">
+        <span class="summary-card__label">Algoritmo</span>
+        <strong>{{ result.algorithm }}</strong>
+      </div>
+      <div class="card summary-card">
+        <span class="summary-card__label">Horizonte</span>
+        <strong>{{ result.summary.today }} &rarr; {{ result.summary.horizonEnd }}</strong>
+      </div>
+      <div class="card summary-card">
+        <span class="summary-card__label">Empleados</span>
+        <strong>{{ result.summary.occupiedEmployees }} / {{ result.summary.totalEmployees }} ocupados</strong>
+        <span class="muted">{{ result.summary.idleEmployees }} inactivos</span>
+      </div>
+      <div class="card summary-card">
+        <span class="summary-card__label">D&iacute;as asignados</span>
+        <strong>{{ result.summary.totalAssignedDays }}</strong>
+      </div>
+      <div class="card summary-card">
+        <span class="summary-card__label">Utilizaci&oacute;n media</span>
+        <strong>{{ result.summary.averageUtilization | percent: '1.1-1' }}</strong>
+      </div>
+      <div class="card summary-card">
+        <span class="summary-card__label">Beneficio estimado</span>
+        <strong>{{ result.summary.totalProfit | currency }}</strong>
+      </div>
+    </div>
+
+    <div class="chips-row">
+      <span class="chip" *ngFor="let entry of result.summary.perProjectDays | keyvalue">
+        Proyecto #{{ entry.key }}: {{ entry.value }}d
+      </span>
+    </div>
+
+    <h2>Asignaciones generadas por /allocation</h2>
+    <table class="table" *ngIf="rows().length > 0; else noRows">
+      <thead>
+        <tr>
+          <th>Proyecto</th>
+          <th>Empleado</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>D&iacute;as</th>
+          <th>Modo</th>
+          <th>Horas/d&iacute;a</th>
+          <th>Notas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of rows()">
+          <td>{{ row.projectName }}</td>
+          <td>{{ row.employeeName }}</td>
+          <td>{{ row.assignment.startDate | date: 'shortDate' }}</td>
+          <td>{{ row.assignment.endDate | date: 'shortDate' }}</td>
+          <td>{{ row.days }}</td>
+          <td><span class="badge">{{ row.assignment.mode }}</span></td>
+          <td>{{ row.assignment.hoursPerDay }}</td>
+          <td class="muted">{{ row.assignment.notes || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noRows>
+      <p class="empty-state">La respuesta de /allocation no incluy&oacute; asignaciones.</p>
+    </ng-template>
+
+    <div class="alert alert--info" *ngIf="result.warnings.length > 0">
+      <ul>
+        <li *ngFor="let warning of result.warnings">{{ warning }}</li>
+      </ul>
+    </div>
+  </ng-container>
+
+  <div class="card">
+    <button type="button" class="btn btn--ghost" (click)="togglePayload()">
+      {{ showPayload() ? 'Ocultar' : 'Ver' }} payload enviado a /allocation
+    </button>
+    <pre class="payload" *ngIf="showPayload()">{{ prettyJson(activeRequest()) }}</pre>
+  </div>
+</section>

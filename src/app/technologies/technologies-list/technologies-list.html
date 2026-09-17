@@ -1,0 +1,41 @@
+<section class="page">
+  <header class="page__header">
+    <h1>Consulta de Tecnologías</h1>
+    <p class="muted">Catálogo de tecnologías utilizadas en los proyectos de la organización.</p>
+  </header>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      class="form-input"
+      placeholder="Buscar por nombre, categoría o versión…"
+      [value]="filter()"
+      (input)="filter.set(($any($event.target).value))"
+    />
+  </div>
+
+  <table class="table" *ngIf="filtered().length > 0; else empty">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th>Última versión</th>
+        <th>Descripción</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let tech of filtered()" class="clickable" [routerLink]="['/tecnologias', tech.id]">
+        <td>
+          <strong>{{ tech.name }}</strong>
+        </td>
+        <td>{{ tech.category }}</td>
+        <td>{{ tech.version }}</td>
+        <td class="muted">{{ tech.description }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #empty>
+    <p class="empty-state">No se encontraron tecnologías con ese criterio.</p>
+  </ng-template>
+</section>

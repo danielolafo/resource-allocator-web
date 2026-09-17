@@ -1,0 +1,43 @@
+<section class="page">
+  <header class="page__header">
+    <h1>Consulta de Proyectos</h1>
+    <p class="muted">Proyectos de la organizaci&oacute;n y las tecnolog&iacute;as que requieren.</p>
+  </header>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      class="form-input"
+      placeholder="Buscar por nombre, cliente o estado..."
+      [value]="filter()"
+      (input)="filter.set(($any($event.target).value))"
+    />
+  </div>
+
+  <table class="table" *ngIf="rows().length > 0; else empty">
+    <thead>
+      <tr>
+        <th>Proyecto</th>
+        <th>Cliente</th>
+        <th>Estado</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Tecnolog&iacute;as requeridas</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows()" class="clickable" [routerLink]="['/proyectos', row.project.id]">
+        <td><strong>{{ row.project.name }}</strong></td>
+        <td>{{ row.project.client }}</td>
+        <td><span class="badge">{{ row.project.status }}</span></td>
+        <td>{{ row.project.startDate | date: 'shortDate' }}</td>
+        <td>{{ row.project.endDate | date: 'shortDate' }}</td>
+        <td>{{ row.technologies.join(', ') }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #empty>
+    <p class="empty-state">No se encontraron proyectos con ese criterio.</p>
+  </ng-template>
+</section>

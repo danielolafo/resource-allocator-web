@@ -1,0 +1,63 @@
+<section class="page">
+  <header class="page__header">
+    <h1>Asignaciones</h1>
+    <p class="muted">Asignaciones de empleados a proyectos registradas en el sistema.</p>
+  </header>
+
+  <div class="toolbar toolbar--between">
+    <label class="field field--inline">
+      <span>Estado</span>
+      <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+        <option *ngFor="let option of statusOptions" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+    <a class="btn btn--primary" [routerLink]="['/asignaciones/nueva']">+ Nueva asignaci&oacute;n</a>
+  </div>
+
+  <table class="table" *ngIf="rows().length > 0; else empty">
+    <thead>
+      <tr>
+        <th>Empleado</th>
+        <th>Proyecto</th>
+        <th>Modalidad</th>
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Estado</th>
+        <th>D&iacute;as restantes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows()">
+        <td>
+          <a [routerLink]="['/empleados', row.assignment.employeeId]">{{ row.employeeName }}</a>
+        </td>
+        <td>
+          <a [routerLink]="['/proyectos', row.assignment.projectId]">{{ row.projectName }}</a>
+        </td>
+        <td>{{ row.modeLabel }}</td>
+        <td>{{ row.assignment.startDate | date: 'shortDate' }}</td>
+        <td>{{ row.assignment.endDate | date: 'shortDate' }}</td>
+        <td>
+          <span
+            class="badge"
+            [class.badge--success]="row.status === 'ACTIVA'"
+            [class.badge--warning]="row.status === 'PROGRAMADA'"
+            [class.badge--muted]="row.status === 'FINALIZADA'"
+          >
+            {{ row.statusLabel }}
+          </span>
+        </td>
+        <td>
+          <span *ngIf="row.status === 'ACTIVA' && row.daysRemaining <= 15" class="text-warning">
+            {{ row.daysRemaining }} d&iacute;as
+          </span>
+          <span *ngIf="row.status !== 'ACTIVA' || row.daysRemaining > 15">&mdash;</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #empty>
+    <p class="empty-state">No hay asignaciones para el estado seleccionado.</p>
+  </ng-template>
+</section>

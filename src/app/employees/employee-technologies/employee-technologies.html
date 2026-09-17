@@ -1,0 +1,26 @@
+<div class="tech-submodule">
+  <h2>{{ employee.firstName }} {{ employee.lastName }} — Tecnologías que maneja</h2>
+  <table class="table" *ngIf="employee.technologies.length > 0; else none">
+    <thead>
+      <tr>
+        <th>Tecnología</th>
+        <th>Nivel de dominio</th>
+        <th>Versión</th>
+        <th>Años de experiencia</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let tech of employee.technologies">
+        <td>
+          <a [routerLink]="['/tecnologias', tech.technologyId]">{{ technologyName(tech.technologyId) }}</a>
+        </td>
+        <td>{{ tech.level }}</td>
+        <td>{{ tech.version }}</td>
+        <td>{{ tech.yearsExperience }} años</td>
+      </tr>
+    </tbody>
+  </table>
+  <ng-template #none>
+    <p class="empty-state">El empleado no registra dominio de ninguna tecnología.</p>
+  </ng-template>
+</div>
