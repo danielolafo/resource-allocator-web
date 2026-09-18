@@ -63,4 +63,34 @@ describe('AssignmentCreate', () => {
     expect(service.assignments().length).toBe(before + 1);
     expect(component.successMessage()).toContain('Se asignaron 1 empleado(s)');
   });
+
+  it('should assign each selected employee to its individually chosen target project', () => {
+    component.form.patchValue({ target: 'SIN_PROYECTO', thresholdDays: 15, projectId: null });
+    const candidates = component.candidates();
+    const first = candidates[0];
+    const second = candidates.find((candidate) => candidate.employeeId !== first.employeeId)!;
+
+    component.toggleSelection(first.employeeId);
+    component.toggleSelection(second.employeeId);
+
+    component.setTarget(first.employeeId, 2);
+    component.setTarget(second.employeeId, 5);
+
+    const service = TestBed.inject(AssignmentService);
+    const before = service.assignments().length;
+    component.submit();
+
+    const http = TestBed.inject(HttpTestingController);
+    const posts = http.match(`${API_BASE_URL}/assignments`);
+    expect(posts.length).toBe(2);
+    const bodiesByEmployee = new Map(
+      posts.map((req) => [req.request.body.employeeId, req.request.body.projectId]),
+    );
+    expect(bodiesByEmployee.get(first.employeeId)).toBe(2);
+    expect(bodiesByEmployee.get(second.employeeId)).toBe(5);
+
+    posts.forEach((req) => req.flush({ ...req.request.body, id: 9000 }));
+    expect(service.assignments().length).toBe(before + 2);
+    expect(component.successMessage()).toContain('Se asignaron 2 empleado(s)');
+  });
 });

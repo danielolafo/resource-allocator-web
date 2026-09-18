@@ -142,17 +142,25 @@
   <div class="card" *ngIf="showSuggestions()">
     <div class="card__header">
       <h2>Asignaciones posibles ({{ suggestions().length }} empleado(s))</h2>
-      <span class="muted">Ordenadas por coincidencia de tecnolog&iacute;as.</span>
+      <span class="muted">Generadas por el servicio de optimizaci&oacute;n (/allocate).</span>
     </div>
     <p class="muted">
-      Elija un proyecto sugerido como destino o asigne uno manualmente en el paso 1.
+      Elija un proyecto sugerido por empleado como destino o asigne uno manualmente en el paso 1.
+      Cada empleado puede tener un proyecto distinto.
     </p>
+    <p class="alert alert--info" *ngIf="suggestionsLoading()">
+      Consultando el servicio de optimizaci&oacute;n de recursos&hellip;
+    </p>
+    <p class="alert alert--danger" *ngIf="allocationNotice()">{{ allocationNotice() }}</p>
 
-    <ng-container *ngIf="suggestions().length > 0; else noSuggestions">
+    <ng-container *ngIf="suggestions().length > 0 && !suggestionsLoading(); else noSuggestions">
       <div class="suggestion" *ngFor="let group of suggestions()">
         <h3>
           {{ group.name }}
           <span class="muted">&middot; {{ group.position }}</span>
+          <span class="badge badge--success" *ngIf="targetProjectId(group.employeeId) as targetId">
+            Destino: {{ projectNameById(targetId) }}
+          </span>
         </h3>
         <table class="table">
           <thead>
@@ -184,20 +192,37 @@
                 </span>
               </td>
               <td>
-                <button type="button" class="btn btn--ghost btn--sm" (click)="useAsTarget(option)">
-                  Usar como destino
+                <button
+                  type="button"
+                  class="btn btn--ghost btn--sm"
+                  [class.btn--primary]="isTarget(group.employeeId, option.projectId)"
+                  (click)="useAsTarget(group.employeeId, option)"
+                >
+                  {{ isTarget(group.employeeId, option.projectId) ? 'Destino elegido' : 'Usar como destino' }}
                 </button>
               </td>
             </tr>
             <tr *ngIf="group.suggestions.length === 0">
-              <td colspan="6" class="muted">No hay proyectos compatibles para este empleado.</td>
+              <td colspan="6" class="muted">
+                No hay asignaciones sugeridas para este empleado.
+                <button
+                  *ngIf="targetProjectId(group.employeeId)"
+                  type="button"
+                  class="btn btn--ghost btn--sm"
+                  (click)="clearTarget(group.employeeId)"
+                >
+                  Quitar destino
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </ng-container>
     <ng-template #noSuggestions>
-      <p class="empty-state">No se encontraron proyectos compatibles para los empleados seleccionados.</p>
+      <p class="empty-state" *ngIf="!suggestionsLoading()">
+        No se encontraron asignaciones sugeridas para los empleados seleccionados.
+      </p>
     </ng-template>
   </div>
 

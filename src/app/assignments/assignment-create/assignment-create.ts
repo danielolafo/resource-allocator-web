@@ -1,8 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { addDays, toIsoDate } from '../../shared/models/assignment';
+import { AllocationResponse } from '../../shared/models/allocation';
+import { AllocationService } from '../../shared/services/allocation.service';
 import { evaluateEmployeeForProject } from '../../shared/utils/technology-match';
+import { toAllocationRequest } from '../../shared/utils/allocation-mapper';
 import {
   AssignmentService,
   AssignmentTarget,
@@ -57,6 +60,7 @@ export class AssignmentCreate {
   private readonly employeeService = inject(EmployeeService);
   private readonly projectService = inject(ProjectService);
   private readonly technologyService = inject(TechnologyService);
+  private readonly allocationService = inject(AllocationService);
 
   readonly projects = this.projectService.projects;
 
@@ -84,6 +88,7 @@ export class AssignmentCreate {
   });
 
   readonly selectedIds = signal<Set<number>>(new Set());
+  readonly employeeTargets = signal<Map<number, number>>(new Map());
   readonly successMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
 
@@ -139,22 +144,87 @@ export class AssignmentCreate {
   });
 
   readonly showSuggestions = signal(false);
+  readonly suggestions = signal<EmployeeSuggestions[]>([]);
+  readonly suggestionsLoading = signal(false);
+  readonly allocationNotice = this.allocationService.lastError;
 
-  readonly suggestions = computed<EmployeeSuggestions[]>(() => {
-    const employeeList = this.employeeService.employees();
-    const projectList = this.projectService
-      .projects()
-      .filter((p) => p.status !== 'Finalizado');
+  private suggestionsRequestSeq = 0;
+
+  constructor() {
+    effect(() => {
+      const ids = [...this.selectedIds()];
+      if (this.showSuggestions() && ids.length > 0) {
+        this.loadSuggestions(ids);
+      } else {
+        this.suggestions.set([]);
+        this.suggestionsLoading.set(false);
+      }
+    });
+  }
+
+  toggleSuggestions(): void {
+    this.showSuggestions.update((value) => !value);
+  }
+
+  private loadSuggestions(employeeIds: number[]): void {
+    const seq = ++this.suggestionsRequestSeq;
+    const request = toAllocationRequest(
+      this.technologyService.technologies(),
+      this.employeeService.employees(),
+      this.projectService.projects(),
+      this.assignmentService.assignments(),
+    );
+
+    this.suggestionsLoading.set(true);
+    this.allocationService.allocate(request).subscribe({
+      next: (result) => {
+        if (seq !== this.suggestionsRequestSeq) {
+          return;
+        }
+        this.suggestions.set(this.mapEmployeeSuggestions(employeeIds, result));
+        this.suggestionsLoading.set(false);
+      },
+      error: () => {
+        if (seq !== this.suggestionsRequestSeq) {
+          return;
+        }
+        this.suggestions.set([]);
+        this.suggestionsLoading.set(false);
+      },
+    });
+  }
+
+  private mapEmployeeSuggestions(
+    employeeIds: number[],
+    result: AllocationResponse,
+  ): EmployeeSuggestions[] {
+    const employeeMap = new Map(
+      this.employeeService.employees().map((employee) => [employee.id, employee] as const),
+    );
+    const projectMap = new Map(
+      this.projectService.projects().map((project) => [project.id, project] as const),
+    );
+    const currentIds = new Set(
+      this.assignmentService.assignments().map((assignment) => assignment.id),
+    );
     const today = new Date();
 
-    return [...this.selectedIds()]
+    return employeeIds
       .map((employeeId) => {
-        const employee = employeeList.find((e) => e.id === employeeId);
+        const employee = employeeMap.get(employeeId);
         if (!employee) {
           return null;
         }
-        const options = projectList
-          .map((project): ProjectSuggestion => {
+        const options = result.assignments
+          .filter(
+            (assignment) =>
+              assignment.employeeId === employeeId && !currentIds.has(assignment.id),
+          )
+          .map((assignment): ProjectSuggestion | null => {
+            const project = projectMap.get(assignment.projectId);
+            if (!project) {
+              return null;
+            }
             const match = evaluateEmployeeForProject(
               employee,
               project,
@@ -181,14 +251,13 @@ export class AssignmentCreate {
                 ).length > 0,
             };
           })
-          .filter((s) => s.matchPercentage > 0)
+          .filter((s): s is ProjectSuggestion => s !== null)
           .sort(
             (a, b) =>
               Number(b.satisfied) - Number(a.satisfied) ||
               b.matchPercentage - a.matchPercentage ||
               a.name.localeCompare(b.name),
-          )
-          .slice(0, 5);
+          );
 
         return {
           employeeId,
@@ -198,15 +267,38 @@ export class AssignmentCreate {
         };
       })
       .filter((s): s is EmployeeSuggestions => s !== null);
-  });
-
-  toggleSuggestions(): void {
-    this.showSuggestions.update((value) => !value);
   }
 
-  useAsTarget(suggestion: ProjectSuggestion): void {
-    this.form.patchValue({ projectId: suggestion.projectId, onlyMatching: false });
-    this.showSuggestions.set(false);
+  setTarget(employeeId: number, projectId: number): void {
+    this.employeeTargets.update((map) => {
+      const next = new Map(map);
+      next.set(employeeId, projectId);
+      return next;
+    });
+  }
+
+  clearTarget(employeeId: number): void {
+    this.employeeTargets.update((map) => {
+      const next = new Map(map);
+      next.delete(employeeId);
+      return next;
+    });
+  }
+
+  targetProjectId(employeeId: number): number | undefined {
+    return this.employeeTargets().get(employeeId);
+  }
+
+  isTarget(employeeId: number, projectId: number): boolean {
+    return this.employeeTargets().get(employeeId) === projectId;
+  }
+
+  projectNameById(id: number): string {
+    return this.projectService.nameById(id);
+  }
+
+  useAsTarget(employeeId: number, suggestion: ProjectSuggestion): void {
+    this.setTarget(employeeId, suggestion.projectId);
   }
 
   isSelected(id: number): boolean {
@@ -238,13 +330,24 @@ export class AssignmentCreate {
     this.errorMessage.set(null);
     const v = this.form.getRawValue();
 
-    if (!v.projectId) {
-      this.errorMessage.set('Debe seleccionar un proyecto.');
-      return;
-    }
     const employeeIds = [...this.selectedIds()];
     if (employeeIds.length === 0) {
       this.errorMessage.set('Debe seleccionar al menos un empleado.');
+      return;
+    }
+
+    const targets: { employeeId: number; projectId: number }[] = [];
+    for (const employeeId of employeeIds) {
+      const projectId = this.targetProjectId(employeeId) ?? (v.projectId ? Number(v.projectId) : null);
+      if (!projectId) {
+        continue;
+      }
+      targets.push({ employeeId, projectId });
+    }
+    if (targets.length !== employeeIds.length) {
+      this.errorMessage.set(
+        'Debe elegir un proyecto destino para cada empleado (en el paso 1 o con el botón "Usar como destino").',
+      );
       return;
     }
 
@@ -258,32 +361,42 @@ export class AssignmentCreate {
       return;
     }
 
-    this.assignmentService.assignEmployees(employeeIds, {
-      projectId: Number(v.projectId),
-      mode: v.mode,
-      hoursPerDay: v.mode === 'HORAS' ? Number(v.hoursPerDay) : undefined,
-      startDate: v.startDate,
-      endDate,
-      notes: v.notes || undefined,
-    }).subscribe({
-      next: (created) => {
-        const modeLabel =
-          v.mode === 'DIAS'
-            ? 'por días'
-            : v.mode === 'HORAS'
-              ? 'por horas'
-              : 'por rango de fechas';
-        this.successMessage.set(
-          `Se asignaron ${created.length} empleado(s) al proyecto "${this.projectService.nameById(
-            Number(v.projectId),
-          )}" con modalidad ${modeLabel}.`,
-        );
-        this.selectedIds.set(new Set());
-        this.form.patchValue({ projectId: null, onlyMatching: false });
-      },
-      error: () => {
-        this.errorMessage.set('No se pudieron crear las asignaciones. Intente de nuevo.');
-      },
-    });
+    this.assignmentService
+      .assignEmployeesToProjects(targets, {
+        mode: v.mode,
+        hoursPerDay: v.mode === 'HORAS' ? Number(v.hoursPerDay) : undefined,
+        startDate: v.startDate,
+        endDate,
+        notes: v.notes || undefined,
+      })
+      .subscribe({
+        next: (created) => {
+          const modeLabel =
+            v.mode === 'DIAS'
+              ? 'por días'
+              : v.mode === 'HORAS'
+                ? 'por horas'
+                : 'por rango de fechas';
+          const counts = new Map<number, number>();
+          for (const target of targets) {
+            counts.set(target.projectId, (counts.get(target.projectId) ?? 0) + 1);
+          }
+          const projectsSummary = [...counts.entries()]
+            .map(
+              ([projectId, count]) =>
+                `"${this.projectService.nameById(projectId)}" (${count})`,
+            )
+            .join(', ');
+          this.successMessage.set(
+            `Se asignaron ${created.length} empleado(s) a ${projectsSummary}, con modalidad ${modeLabel}.`,
+          );
+          this.selectedIds.set(new Set());
+          this.employeeTargets.set(new Map());
+          this.form.patchValue({ projectId: null, onlyMatching: false });
+        },
+        error: () => {
+          this.errorMessage.set('No se pudieron crear las asignaciones. Intente de nuevo.');
+        },
+      });
   }
 }

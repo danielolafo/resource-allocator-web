@@ -79,10 +79,20 @@ export class AssignmentService {
   }
 
   assignEmployees(employeeIds: number[], payload: AssignPayload): Observable<Assignment[]> {
-    const requests = employeeIds.map((employeeId) =>
+    return this.assignEmployeesToProjects(
+      employeeIds.map((employeeId) => ({ employeeId, projectId: payload.projectId })),
+      payload,
+    );
+  }
+
+  assignEmployeesToProjects(
+    targets: { employeeId: number; projectId: number }[],
+    payload: Omit<AssignPayload, 'projectId'>,
+  ): Observable<Assignment[]> {
+    const requests = targets.map(({ employeeId, projectId }) =>
       this.http.post<Assignment>(this.baseUrl, {
         employeeId,
-        projectId: payload.projectId,
+        projectId,
         mode: payload.mode,
         hoursPerDay: payload.hoursPerDay,
         startDate: payload.startDate,
